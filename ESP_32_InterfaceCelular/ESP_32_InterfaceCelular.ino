@@ -1,121 +1,91 @@
-#include <Arduino.h>
 #include <EEPROM.h>
 
-#define EEPROM_SIZE 512 // Tamanho da EEPROM da ESP32
+#define EEPROM_SIZE 1000
 
-// Definição das estruturas
 typedef struct {
+  int id;
   char numero[12];
-  char nome[50];
   char operadora[3];
 } Telefone;
 
 typedef struct {
-  char numero[10];
-  char mensagem[300];
+  int idTelefone;
+  char mensagem[30];
 } Mensagem;
-
-// Funções de EEPROM
-void EEPROM_write(int address, byte data) {
-  EEPROM.begin(EEPROM_SIZE);
-  EEPROM.write(address, data);
-  EEPROM.commit();
-  EEPROM.end();
-}
-
-byte EEPROM_read(int address) {
-  EEPROM.begin(EEPROM_SIZE);
-  byte data = EEPROM.read(address);
-  EEPROM.end();
-  return data;
-}
-
-// Funções para Telefones
-void cadastraTelefone(const char* numero, const char* nome, const char* operadora, int index) {
-  Telefone telefone;
-  
-  strcpy(telefone.numero, numero);
-  strcpy(telefone.nome, nome);
-  strcpy(telefone.operadora, operadora);
-  int addr = sizeof(Telefone) * index;
-  
-  EEPROM.put(addr,telefone);
-  /*Serial.printf("CADASTRO REALIZADO\n");
-  Serial.printf("Endereco: %d\n", addr);
-  Serial.printf("Numero: %s\n", telefone.numero);
-  Serial.printf("Nome: %s\n", telefone.nome);
-  Serial.printf("Operadora: %s\n", telefone.operadora);*/
-}
-
-void listaTelefones() {
-  int totalTelefones = EEPROM_SIZE / sizeof(Telefone);
-  EEPROM
-  Serial.println("Listagem de Telefones:");
-  for (int i = 0; i < totalTelefones; i++) {
-    Telefone telefone;
-    int addr = sizeof(Telefone) * i;
-    EEPROM.get(addr, telefone);
-    
-    if (telefone.numero[0] != '\0') {
-      Serial.print("Número: ");
-      Serial.println(telefone.numero);
-      Serial.print("Nome: ");
-      Serial.println(telefone.nome);
-      Serial.print("Operadora: ");
-      Serial.println(telefone.operadora);
-      Serial.println("-------------------------");
-    }
-  }
-}
-
-void alteraTelefone(const char* numero, const char* nome, const char* operadora, int index) {
-  Telefone telefone;
-  strncpy(telefone.numero, numero, sizeof(telefone.numero));
-  strncpy(telefone.nome, nome, sizeof(telefone.nome));
-  strncpy(telefone.operadora, operadora, sizeof(telefone.operadora));
-
-  int addr = sizeof(Telefone) * index;
-  EEPROM.put(addr, telefone);
-}
-
-void excluiTelefone(int index) {
-  Telefone telefone;
-  telefone.numero[0] = '\0';
-  
-  int addr = sizeof(Telefone) * index;
-  EEPROM.put(addr, telefone);
-}
 
 void setup() {
   Serial.begin(115200);
-  delay(1000);
-
-  // Inicialização da EEPROM
   EEPROM.begin(EEPROM_SIZE);
 
-  // Exemplo de uso inicial:
-  //cadastraTelefone("988655252", "Jonathan", "49", 0);
-  //cadastraTelefone("987654321", "Maria", "51", 1);
+  // Limpar EEPROM
+  clearEEPROM();
+  Serial.println("EEPROM limpa.");
 
-  // Lista os telefones cadastrados
-  Serial.println("Telefones cadastrados:");
-  listaTelefones();
-  
-  // Altera um telefone
-  alteraTelefone("4911111111", "João", "49", 0);
-  Serial.println("Telefones após alteração:");
-  listaTelefones();
-  /*
-  // Exclui um telefone
-  excluiTelefone(1);
-  Serial.println("Telefones após exclusão:");
-  listaTelefones();*/
+  // Teste inicial para gravar e ler dados
+  Telefone tel1 = {1, "1234567890", "15"};
+  Telefone tel2 = {2, "0987654321", "41"};
+  Mensagem msg = {1, "Hello, this is a test message."};
 
-  // Encerramento da EEPROM
-  EEPROM.end();
+  writeTelefone(0, tel1);
+  writeMensagem(sizeof(Telefone), msg);
+  writeTelefone(sizeof(Telefone) + sizeof(Mensagem), tel2);
+
+  Serial.println("Dados escritos na EEPROM.");
+
+  Telefone readTel1, readTel2;
+  Mensagem readMsg;
+
+  readTelefone(0, readTel1);
+  readMensagem(sizeof(Telefone), readMsg);
+  readTelefone(sizeof(Telefone) + sizeof(Mensagem), readTel2);
+
+  Serial.println("Leitura de dados da EEPROM:");
+  printTelefone(readTel1);
+  printMensagem(readMsg);
+  printTelefone(readTel2);
 }
 
 void loop() {
-  // Exemplo de loop vazio
-  delay(1000);
+  // Adicione aqui o código para alterar dados conforme necessário
+}
+
+void writeTelefone(int address, Telefone tel) {
+  EEPROM.put(address, tel);
+  EEPROM.commit();
+}
+
+void writeMensagem(int address, Mensagem msg) {
+  EEPROM.put(address, msg);
+  EEPROM.commit();
+}
+
+void readTelefone(int address, Telefone &tel) {
+  EEPROM.get(address, tel);
+}
+
+void readMensagem(int address, Mensagem &msg) {
+  EEPROM.get(address, msg);
+}
+
+void printTelefone(Telefone tel) {
+  Serial.print("ID: ");
+  Serial.println(tel.id);
+  Serial.print("Número: ");
+  Serial.println(tel.numero);
+  Serial.print("Operadora: ");
+  Serial.println(tel.operadora);
+}
+
+void printMensagem(Mensagem msg) {
+  Serial.print("ID Telefone: ");
+  Serial.println(msg.idTelefone);
+  Serial.print("Mensagem: ");
+  Serial.println(msg.mensagem);
+}
+
+void clearEEPROM() {
+  for (int i = 0; i < EEPROM_SIZE; i++) {
+    EEPROM.write(i, 0);
+  }
+  EEPROM.commit();
 }
